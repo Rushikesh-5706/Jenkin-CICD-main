@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "prasad67/maven-web-app"
-    }
-
     stages {
 
         stage('Checkout Code') {
@@ -22,29 +18,21 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                  docker build -t $IMAGE_NAME:${BUILD_NUMBER} .
+                  docker build -t maven-web-app .
                 '''
             }
         }
 
-        stage('Login to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    '''
-                }
-            }
-        }
-
-        stage('Push Image to Docker Hub') {
+        stage('Deploy Docker Container') {
             steps {
                 sh '''
-                  docker push $IMAGE_NAME:${BUILD_NUMBER}
+                  docker stop webapp || true
+                  docker rm webapp || true
+
+                  docker run -d \
+                    --name webapp \
+                    -p 8081:8080 \
+                    maven-web-app
                 '''
             }
         }
